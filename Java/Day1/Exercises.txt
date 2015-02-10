@@ -1,0 +1,44 @@
+1) Check out William Pugh's "Java memory model" website.
+
+The page can be found here: http://www.cs.umd.edu/~pugh/java/memoryModel/.
+
+2) Acquint yourself with the JSR 133 (Java memory model) FAQ.
+
+The page can be found: http://www.cs.umd.edu/~pugh/java/memoryModel/jsr-133-faq.html
+
+3) What guarantees does the Java memory model make regarding initialization safety? Is it always necessary to use locks to safely publish objects between threads?
+
+The Java memory model guarantees that if an object is properly constructed (which means that references to it do not escape during construction), then all threads which see a reference to that object will also see the values for its final fields which were set in the constructor, without the need for synchronization.  Having said this, if, after a thread constructs an immutable object (that is, an object that contains only final fields), you want to ensure that it is correctly seen by all of the other threads, you still typically need to use synchronization.  There is no other way to ensure, for example, that the reference to the immutable object will be seen by the second thread.  
+
+4) What is the double-checked locking anti-pattern? Why is it an anti-pattern?
+
+The double-checked locking idiom (also called the multithreaded singleton pattern) is a trick designed to support lazy initialization without the overhead of synchronization.  The double-checked locking idiom looks like this:
+
+//Code
+private static Something instance = null;
+
+public Something getInstance() {
+  if ( instance == NULL ) {
+    synchronized (this) {
+      if ( instance == NULL )
+        instance = new Something();
+    }
+  }
+  return instance;
+}
+
+The problem with this idiom is that the writes which initialize instance and the write to the instance field can be reordered by the compiler or the cache, which would have the effect of returning what appears to be a partially constructed something.  The Initialization On Demand Holder idiom is a thread-safe alternative:
+
+public static class LazySomethingHolder {
+  public static Something something = new Something();
+}
+
+public static Something getInstance() {
+  return LazySomethingHolder.something;
+}
+
+This code is guaranteeed to be correct because of initialization guarantees for static fields; if a field is set in a static initializer, it is guaranteed to be made visible, correctly, to any thread that accesses that class.
+
+5) Experiment with the original, broken "dining philosophers" example.  Try modifying the length of time that philosophers think and eat and the number of philosphers.  What effect does this have on how it takes until deadlock? Image that you were trying to debug this and wanted to increase the likelihood of reproducing the deadlock--what would you do?
+
+To increase the likelihood of a deadlock, one simply needs to shorten the amont of time between resource acquisition, namely by decreasing the thinking time and increasing eating time and the number of philosophers.
